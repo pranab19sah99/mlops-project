@@ -1,10 +1,19 @@
-FROM python:3.10
+# Dockerfile
+FROM python:3.10-slim
 
 WORKDIR /app
+
+# Copy only necessary files
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY app/ app/
-COPY app/model.pkl app/model.pkl
+COPY api ./api
+COPY src ./src
+COPY models ./models
+COPY logs ./logs
 
-CMD ["python", "app/main.py"]
+ENV PYTHONPATH=/app/src
+
+EXPOSE 5000
+
+CMD ["python", "api/app.py"]
