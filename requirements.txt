@@ -1,0 +1,14 @@
+flask
+scikit-learn
+mlflow
+prometheus_client
+pandas
+numpy
+pytest
+black
+flake8
+gunicorn
+fastapi
+uvicorn
+joblib
+pydantic

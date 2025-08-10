@@ -1,0 +1,47 @@
+version: "3.9"
+
+services:
+  api:
+    image: pranabdock/mlops-iris:latest
+    container_name: iris_api
+    ports:
+      - "5000:5000"
+    environment:
+      - PYTHONPATH=/app/src
+      - MODEL_PATH=models/LogisticRegression.pkl
+    volumes:
+      - ./models:/app/models
+      - ./logs:/app/logs
+    command: uvicorn app.main:app --host 0.0.0.0 --port 5000
+
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.16.0
+    container_name: mlflow_ui
+    ports:
+      - "5001:5000"
+    volumes:
+      - ./mlruns:/mlruns
+    command: mlflow ui --backend-store-uri file:///mlruns --host 0.0.0.0
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - api
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  grafana_data:
