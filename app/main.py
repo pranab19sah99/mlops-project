@@ -130,27 +130,40 @@ def mlflow_ui():
 def health():
     return {"status": "ok"}
 
+CLASS_NAMES = ["setosa", "versicolor", "virginica"]
+
 @app.post("/predict")
 def predict(req: FeaturesRequest):
     REQUEST_COUNT.inc()
     try:
         features = req.features
         X = validate_input(features)
+        
         preds = MODEL.predict(X).tolist()
+        probs = MODEL.predict_proba(X).tolist()
 
-        log_entry = {"input": features, "prediction": preds}
+        results = []
+        for pred, prob in zip(preds, probs):
+            results.append({
+                "predicted_class": CLASS_NAMES[pred],
+                "probabilities": {
+                    CLASS_NAMES[i]: float(p) for i, p in enumerate(prob)
+                }
+            })
+
+        log_entry = {"input": features, "prediction": results}
         logger.info(json.dumps(log_entry))
 
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO requests (input_json, prediction) VALUES (?, ?)",
-            (json.dumps(features), json.dumps(preds))
+            (json.dumps(features), json.dumps(results))
         )
         conn.commit()
         conn.close()
 
-        return {"prediction": preds}
+        return {"results": results}
     except Exception as e:
         ERROR_COUNT.inc()
         logger.exception("Prediction error")
