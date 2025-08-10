@@ -3,7 +3,7 @@ name: CI CD
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ main, master, ml-ci-cd ]
 
 jobs:
   lint-and-test:
