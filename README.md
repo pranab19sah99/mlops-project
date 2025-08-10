@@ -2,109 +2,160 @@
 
 ## Project Overview
 
-This project serves a machine learning Iris classification API, tracked and monitored using Prometheus and Grafana. It includes:
+This project serves a machine learning Iris classification API with monitoring and visualization using Prometheus and Grafana. It features:
 
-- A FastAPI-based ML API serving predictions using a trained Logistic Regression model.
+- FastAPI-based ML API serving Iris predictions.
 - MLflow for experiment tracking.
-- Prometheus for metrics scraping.
-- Grafana for visualizing metrics and building dashboards.
-- Automated CI/CD pipeline with GitHub Actions to build and publish Docker images.
+- Prometheus for metrics collection.
+- Grafana for dashboards and visualization.
+- GitHub Actions CI/CD pipeline for automated builds and Docker image publishing.
 
 ---
 
 ## Tech Stack
 
 - Python (FastAPI, scikit-learn)
-- MLflow (Model tracking)
-- Prometheus (Monitoring & metrics scraping)
-- Grafana (Visualization & dashboards)
-- Docker & Docker Compose (Containerization and orchestration)
-- GitHub Actions (CI/CD pipeline)
-- Docker Hub (Image registry)
+- MLflow
+- Prometheus
+- Grafana
+- Docker & Docker Compose
+- GitHub Actions
+- Docker Hub
 
 ---
 
-## Getting Started
+## Quickstart: Pull and Run Pre-built Images
 
-### 1. Clone the repo
+### 1. Pull the latest Docker images
 
-```bash
-git clone <repo_url>
-cd <repo_folder>
-````
-
-### 2. Run with Docker Compose (using local build)
-
-```bash
-docker-compose up -d
-```
-
----
-
-### Alternative: Pull pre-built images from Docker Hub
-
-The CI/CD pipeline builds and pushes Docker images automatically on every push to the main branch.
-
-To run the project using the published images:
+From the project root directory (where `docker-compose.yml` is), run:
 
 ```bash
 docker-compose pull
-docker-compose up -d
-```
+````
 
-This fetches the latest images from Docker Hub and runs them locally.
+This downloads the latest published images for all services.
 
 ---
 
-## Usage
+### 2. Start the containers
 
-### Access Prometheus UI
+Run all services in detached mode:
 
-Open [http://localhost:9090](http://localhost:9090) to explore Prometheus metrics.
+```bash
+docker-compose up -d
+```
 
-### Access Grafana UI
+---
 
-Open [http://localhost:3000](http://localhost:3000) and login with:
+### 3. Verify running containers
+
+Check that containers are up with:
+
+```bash
+docker ps
+```
+
+You should see containers for:
+
+* `iris_api` (ML API)
+* `mlflow_ui` (MLflow tracking)
+* `prometheus` (metrics scraping)
+* `grafana` (dashboard UI)
+
+---
+
+### 4. Access the services in your browser
+
+| Service       | URL                                            | Description            |
+| ------------- | ---------------------------------------------- | ---------------------- |
+| Iris API      | [http://localhost:5000](http://localhost:5000) | ML prediction API      |
+| MLflow UI     | [http://localhost:5001](http://localhost:5001) | Experiment tracking UI |
+| Prometheus UI | [http://localhost:9090](http://localhost:9090) | Metrics exploration UI |
+| Grafana UI    | [http://localhost:3000](http://localhost:3000) | Dashboards and visuals |
+
+Login to Grafana with default credentials:
 
 * Username: `admin`
 * Password: `admin`
 
 ---
 
-### Add Prometheus Datasource in Grafana
+## Adding Prometheus as a Data Source in Grafana
 
-* Navigate to **Configuration → Data Sources**
-* Add new Prometheus datasource
-* Set URL to `http://prometheus:9090`
-* Save and test connection
+1. After logging into Grafana, go to the **Configuration (gear icon) → Data Sources**.
+2. Click **Add data source**.
+3. Select **Prometheus**.
+4. Set the URL to:
 
----
+   ```
+   http://prometheus:9090
+   ```
 
-### Create and Save a Dashboard
-
-* Click the **+** icon → **Dashboard**
-* Add new panel → select Prometheus datasource
-* Example query: `up{job="iris_api"}`
-* Customize and save the dashboard with a name
+   (This uses the Docker service name, allowing Grafana to connect inside the Docker network.)
+5. Click **Save & Test** to verify the connection.
 
 ---
 
-## CI/CD Pipeline
+## Creating a Dashboard in Grafana
 
-* GitHub Actions workflow automatically:
+1. Click the **+** icon in the left sidebar and choose **Dashboard**.
 
-  * Builds Docker images for the API and other services on push
-  * Runs tests if any
-  * Pushes images to Docker Hub (`pranabdock/mlops-iris:latest`)
-* This ensures the latest working version is always published and ready to pull
+2. Click **Add new panel**.
+
+3. Select **Prometheus** as the data source.
+
+4. Enter a Prometheus query, for example:
+
+   ```
+   up{job="iris_api"}
+   ```
+
+   This query checks if the Iris API is up (returns 1 if up, 0 if down).
+
+5. Customize the visualization type (Graph, Stat, Gauge, etc.) as you prefer.
+
+6. Click **Apply**.
+
+7. Save the dashboard with a meaningful name by clicking the **Save dashboard** icon.
+
+---
+
+## GitHub Actions CI/CD Pipeline
+
+* **Workflow triggers:**
+  The GitHub Actions pipeline runs automatically on every push to the **main** branch.
+
+* **What it does:**
+
+  * Builds Docker images for the API and related services.
+  * Runs tests (if any).
+  * Pushes the built images to Docker Hub under the repository `pranabdock/mlops-iris:latest`.
+
+* **Benefits:**
+  This automated pipeline ensures your Docker images on Docker Hub are always up-to-date with the latest code changes, so you can easily pull and run the latest version locally or in other environments.
 
 ---
 
 ## Notes
 
-* Docker volumes persist MLflow runs and Grafana data.
-* Update `prometheus.yml` to add new scrape targets as needed.
+* The `docker-compose.yml` mounts local directories as volumes to persist logs, MLflow runs, and Grafana data.
+
+* Modify `prometheus/prometheus.yml` to add or change scrape targets.
+
+* If you want to build and run the images locally instead of pulling, you can run:
+
+  ```bash
+  docker-compose build
+  docker-compose up -d
+  ```
+
+* To stop and remove all running containers:
+
+  ```bash
+  docker-compose down
+  ```
 
 ---
 
-Thanks for checking out the project! Feel free to reach out with questions.
+Thanks for exploring this project! Feel free to ask if you want help setting up Grafana dashboards or GitHub Actions workflows.
