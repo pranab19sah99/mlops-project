@@ -1,4 +1,4 @@
-# MLOps Project - CI/CD with FastAPI, MLflow, and GitHub Actions
+# MLOps Project - CI/CD with FastAPI, MLflow, and GitHub Actions - Test
 
 This project demonstrates an MLOps pipeline using FastAPI, MLflow, Docker, and GitHub Actions for CI/CD, model retraining, and logging/monitoring.
 
