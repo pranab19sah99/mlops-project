@@ -6,10 +6,12 @@ import numpy as np
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
-MODEL_PATH = os.getenv("MODEL_PATH", "models/LogisticRegression.pkl")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.getenv("MODEL_PATH", os.path.join(BASE_DIR, "..", "models", "LogisticRegression.pkl"))
 
 def load_model(path=None):
     path = path or MODEL_PATH
+    print("path:", path)
     if not os.path.exists(path):
         raise FileNotFoundError(f"Model file not found: {path}")
     with open(path, "rb") as f:

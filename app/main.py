@@ -102,7 +102,8 @@ def launch_mlflow():
 # API Models
 # --------------------
 class FeaturesRequest(BaseModel):
-    features: conlist(conlist(float, min_items=4, max_items=4), min_items=1) | conlist(float, min_items=4, max_items=4)
+    features: conlist(conlist(float, min_length=4, max_length=4), min_length=1) \
+              | conlist(float, min_length=4, max_length=4)
 
 # --------------------
 # Routes
