@@ -1,242 +1,110 @@
-# MLOps Project - CI/CD with FastAPI, MLflow, and GitHub Actions
+# Iris ML API with Monitoring
 
-This project demonstrates an MLOps pipeline using FastAPI, MLflow, Docker, and GitHub Actions for CI/CD, model retraining, and logging/monitoring.
+## Project Overview
 
----
+This project serves a machine learning Iris classification API, tracked and monitored using Prometheus and Grafana. It includes:
 
-## Features
-
-- **FastAPI** application that wraps MLflow Tracking Server and UI
-- **MLflow** for experiment tracking and model registry
-- **GitHub Actions** for scheduled retraining
-- **Docker Compose** for local development and deployment
-- **Logging & Monitoring** built-in
-- **Automatic documentation** at `/docs` (FastAPI Swagger UI)
+- A FastAPI-based ML API serving predictions using a trained Logistic Regression model.
+- MLflow for experiment tracking.
+- Prometheus for metrics scraping.
+- Grafana for visualizing metrics and building dashboards.
+- Automated CI/CD pipeline with GitHub Actions to build and publish Docker images.
 
 ---
 
-## Project Structure
+## Tech Stack
 
-```
-.
-├── app/
-│   ├── __init__.py
-│   └── main.py           # FastAPI wrapper for MLflow
-├── src/
-│   ├── __init__.py
-│   └── retrain.py        # Model retraining script
-├── scripts/              # (Optional) helper scripts
-├── requirements.txt
-├── docker-compose.yml
-├── .github/
-│   └── workflows/
-│       └── retrain.yml   # GitHub Actions workflow
-└── README.md
-```
+- Python (FastAPI, scikit-learn)
+- MLflow (Model tracking)
+- Prometheus (Monitoring & metrics scraping)
+- Grafana (Visualization & dashboards)
+- Docker & Docker Compose (Containerization and orchestration)
+- GitHub Actions (CI/CD pipeline)
+- Docker Hub (Image registry)
 
 ---
 
-## Prerequisites
+## Getting Started
 
-- Python 3.10+
-- Docker & Docker Compose
-- GitHub account (for CI/CD)
-- MLflow installed (`pip install mlflow`)
+### 1. Clone the repo
 
----
-
-## Setup & Run Locally
-
-### 1. Clone the repository
 ```bash
-git clone <your-repo-url>
-cd <repo-folder>
-```
+git clone <repo_url>
+cd <repo_folder>
+````
 
-### 2. Create and activate a virtual environment
+### 2. Run with Docker Compose (using local build)
+
 ```bash
-python -m venv venv
-source venv/bin/activate   # Linux / Mac
-venv\Scripts\activate      # Windows
+docker-compose up -d
 ```
 
-### 3. Install dependencies
+---
+
+### Alternative: Pull pre-built images from Docker Hub
+
+The CI/CD pipeline builds and pushes Docker images automatically on every push to the main branch.
+
+To run the project using the published images:
+
 ```bash
-pip install --upgrade pip
-pip install -r requirements.txt
+docker-compose pull
+docker-compose up -d
 ```
 
-### 4. Run with Docker Compose
-```bash
-docker-compose up --build
-```
-This starts:
-- **FastAPI** at `http://localhost:8000`
-- **MLflow UI** at `http://localhost:5000`
-
-### 5. Run without Docker
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-MLflow will be served as a subprocess.
+This fetches the latest images from Docker Hub and runs them locally.
 
 ---
 
-## Example FastAPI `main.py`
-```python
-from fastapi import FastAPI
-from fastapi.responses import RedirectResponse
-import subprocess
-import threading
-import os
+## Usage
 
-app = FastAPI(
-    title="MLflow API",
-    description="FastAPI wrapper for MLflow UI and Tracking API",
-    version="1.0.0"
-)
+### Access Prometheus UI
 
-MLFLOW_HOST = "0.0.0.0"
-MLFLOW_PORT = int(os.getenv("MLFLOW_PORT", 5000))
-BACKEND_STORE_URI = os.getenv("BACKEND_STORE_URI", "sqlite:///mlflow.db")
-ARTIFACT_ROOT = os.getenv("ARTIFACT_ROOT", "./mlruns")
+Open [http://localhost:9090](http://localhost:9090) to explore Prometheus metrics.
 
-def start_mlflow():
-    subprocess.run([
-        "mlflow", "server",
-        "--host", MLFLOW_HOST,
-        "--port", str(MLFLOW_PORT),
-        "--backend-store-uri", BACKEND_STORE_URI,
-        "--default-artifact-root", ARTIFACT_ROOT
-    ])
+### Access Grafana UI
 
-@app.on_event("startup")
-def launch_mlflow():
-    threading.Thread(target=start_mlflow, daemon=True).start()
+Open [http://localhost:3000](http://localhost:3000) and login with:
 
-@app.get("/")
-def root():
-    return RedirectResponse(url="/docs")
-
-@app.get("/mlflow")
-def mlflow_ui():
-    return RedirectResponse(url=f"http://localhost:{MLFLOW_PORT}")
-```
+* Username: `admin`
+* Password: `admin`
 
 ---
 
-## Example `src/retrain.py`
-```python
-import mlflow
-import mlflow.sklearn
-from sklearn.datasets import load_iris
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-import time
+### Add Prometheus Datasource in Grafana
 
-def retrain_model():
-    mlflow.set_tracking_uri("http://mlflow:5000")
-    mlflow.set_experiment("iris_classification")
-
-    data = load_iris()
-    X_train, X_test, y_train, y_test = train_test_split(
-        data.data, data.target, test_size=0.2, random_state=42
-    )
-
-    with mlflow.start_run():
-        model = RandomForestClassifier(n_estimators=100, random_state=42)
-        model.fit(X_train, y_train)
-
-        y_pred = model.predict(X_test)
-        acc = accuracy_score(y_test, y_pred)
-
-        mlflow.log_param("n_estimators", 100)
-        mlflow.log_metric("accuracy", acc)
-        mlflow.sklearn.log_model(model, "model")
-
-        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] Retrained model with accuracy: {acc:.4f}")
-
-if __name__ == "__main__":
-    retrain_model()
-```
+* Navigate to **Configuration → Data Sources**
+* Add new Prometheus datasource
+* Set URL to `http://prometheus:9090`
+* Save and test connection
 
 ---
 
-## Docker Compose (`docker-compose.yml`)
-```yaml
-version: "3.9"
+### Create and Save a Dashboard
 
-services:
-  fastapi:
-    build: .
-    ports:
-      - "8000:8000"
-    environment:
-      - MLFLOW_PORT=5000
-      - BACKEND_STORE_URI=sqlite:///mlflow.db
-      - ARTIFACT_ROOT=/mlruns
-    volumes:
-      - ./mlruns:/mlruns
-    depends_on:
-      - mlflow
-
-  mlflow:
-    image: python:3.10
-    working_dir: /app
-    command: >
-      bash -c "pip install mlflow && 
-               mlflow server --host 0.0.0.0 --port 5000
-               --backend-store-uri sqlite:///mlflow.db
-               --default-artifact-root /mlruns"
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./mlruns:/mlruns
-```
+* Click the **+** icon → **Dashboard**
+* Add new panel → select Prometheus datasource
+* Example query: `up{job="iris_api"}`
+* Customize and save the dashboard with a name
 
 ---
 
-## GitHub Actions Workflow (`.github/workflows/retrain.yml`)
-```yaml
-name: Scheduled Retraining
+## CI/CD Pipeline
 
-on:
-  schedule:
-    - cron: "0 0 * * 0" # Every Sunday at midnight UTC
-  workflow_dispatch:
+* GitHub Actions workflow automatically:
 
-jobs:
-  retrain:
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.10"
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run retraining
-        run: |
-          python src/retrain.py
-```
+  * Builds Docker images for the API and other services on push
+  * Runs tests if any
+  * Pushes images to Docker Hub (`pranabdock/mlops-iris:latest`)
+* This ensures the latest working version is always published and ready to pull
 
 ---
 
-## Access
+## Notes
 
-- **FastAPI Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
-- **MLflow UI:** [http://localhost:5000](http://localhost:5000)
+* Docker volumes persist MLflow runs and Grafana data.
+* Update `prometheus.yml` to add new scrape targets as needed.
 
 ---
 
-## License
-MIT License
+Thanks for checking out the project! Feel free to reach out with questions.

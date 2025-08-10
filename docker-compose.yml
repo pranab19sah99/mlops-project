@@ -2,7 +2,7 @@ version: "3.9"
 
 services:
   api:
-    build: .
+    image: pranabdock/mlops-iris:latest
     container_name: iris_api
     ports:
       - "5000:5000"
@@ -22,3 +22,26 @@ services:
     volumes:
       - ./mlruns:/mlruns
     command: mlflow ui --backend-store-uri file:///mlruns --host 0.0.0.0
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    depends_on:
+      - api
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+volumes:
+  grafana_data:
