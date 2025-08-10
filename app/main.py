@@ -10,7 +10,7 @@ from fastapi.responses import RedirectResponse, PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, conlist
 from prometheus_client import Counter, generate_latest, CONTENT_TYPE_LATEST
-from utils import load_model, validate_input
+from src.utils import load_model, validate_input
 
 # --------------------
 # Logging
