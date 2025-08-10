@@ -1,6 +1,7 @@
 import os
 import pickle
 import logging
+import joblib
 import numpy as np
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
@@ -15,7 +16,7 @@ def load_model(path=None):
     if not os.path.exists(path):
         raise FileNotFoundError(f"Model file not found: {path}")
     with open(path, "rb") as f:
-        model = pickle.load(f)
+        model = joblib.load(f)
     logger.info(f"Loaded model from {path}")
     return model
 

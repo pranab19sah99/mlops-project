@@ -10,3 +10,4 @@ flake8
 gunicorn
 fastapi
 uvicorn
+joblib

@@ -5,6 +5,8 @@ import logging
 import sqlite3
 import subprocess
 import threading
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import RedirectResponse, PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -53,32 +55,7 @@ REQUEST_COUNT = Counter("prediction_requests_total", "Total number of prediction
 ERROR_COUNT = Counter("prediction_errors_total", "Total number of prediction errors")
 
 # --------------------
-# Model load
-# --------------------
-MODEL = None
-try:
-    MODEL = load_model()
-    logger.info("Model loaded successfully")
-except Exception as e:
-    logger.error(f"Failed to load model: {e}")
-
-# --------------------
-# FastAPI app
-# --------------------
-app = FastAPI(title="Iris MLOps API + MLflow",
-              description="Unified API for Iris predictions and MLflow tracking",
-              version="1.0")
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# --------------------
-# MLflow server thread
+# MLflow server settings
 # --------------------
 MLFLOW_HOST = "0.0.0.0"
 MLFLOW_PORT = int(os.getenv("MLFLOW_PORT", 5000))
@@ -94,9 +71,42 @@ def start_mlflow():
         "--default-artifact-root", ARTIFACT_ROOT
     ])
 
-@app.on_event("startup")
-def launch_mlflow():
+# --------------------
+# Lifespan for startup/shutdown
+# --------------------
+MODEL = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    global MODEL
+    # Startup
+    try:
+        MODEL = load_model()
+        logger.info("Model loaded successfully")
+    except Exception as e:
+        logger.error(f"Failed to load model: {e}")
     threading.Thread(target=start_mlflow, daemon=True).start()
+    yield
+    # Shutdown
+    logger.info("Shutting down application...")
+
+# --------------------
+# FastAPI app
+# --------------------
+app = FastAPI(
+    title="Iris MLOps API + MLflow",
+    description="Unified API for Iris predictions and MLflow tracking",
+    version="1.0",
+    lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # --------------------
 # API Models
@@ -133,7 +143,10 @@ def predict(req: FeaturesRequest):
 
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
-        cur.execute("INSERT INTO requests (input_json, prediction) VALUES (?, ?)", (json.dumps(features), json.dumps(preds)))
+        cur.execute(
+            "INSERT INTO requests (input_json, prediction) VALUES (?, ?)",
+            (json.dumps(features), json.dumps(preds))
+        )
         conn.commit()
         conn.close()
 
